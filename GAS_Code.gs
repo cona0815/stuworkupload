@@ -190,8 +190,16 @@ function uploadBase64File(fileInfo, selectedFolder, className, seat) {
     let folderId = '';
     let rowIndex = -1;
     
-    for (let i = 1; i < configRows.length; i++) {
-      if (configRows[i][0] === selectedFolder) {
+    // 修改：從 i = 0 開始搜尋，以免使用者將資料填在第一列 (A1)
+    for (let i = 0; i < configRows.length; i++) {
+      // 使用 trim() 去除前後空白，並轉為字串比較，增加容錯率
+      const rowName = configRows[i][0] ? configRows[i][0].toString().trim() : '';
+      const targetName = selectedFolder ? selectedFolder.toString().trim() : '';
+
+      // 跳過標題列 (如果剛好選到的名字跟標題一樣，雖然機率很低)
+      if (rowName === '顯示名稱' || rowName === '資料夾名稱') continue;
+
+      if (rowName === targetName) {
         folderId = configRows[i][1];
         rowIndex = i;
         break;
@@ -256,7 +264,10 @@ function uploadBase64File(fileInfo, selectedFolder, className, seat) {
     
     // 設定檔案權限 (視需求開啟)
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    const fileUrl = file.getUrl();
+    
+    // 修改：產生直接下載連結 (Direct Download Link)
+    // 讓使用者點擊後直接下載，而不是進入 Google Drive 預覽頁面
+    const fileUrl = "https://drive.google.com/uc?export=download&id=" + file.getId();
     
     // 3. 寫入試算表紀錄
     let logSheet = ss.getSheetByName('檔案紀錄');
@@ -268,7 +279,9 @@ function uploadBase64File(fileInfo, selectedFolder, className, seat) {
     const time = new Date();
     // 格式化時間為字串，避免時區問題
     const formattedTime = Utilities.formatDate(time, Session.getScriptTimeZone(), "yyyy/MM/dd HH:mm:ss");
-    logSheet.appendRow([formattedTime, className, seat, selectedFolder, newFileName, fileUrl]);
+    
+    // 修改：座號前加上單引號 "'" 強制轉為文字格式，避免 Google Sheet 自動將 "07" 轉為數字 7
+    logSheet.appendRow([formattedTime, className, "'" + seat, selectedFolder, newFileName, fileUrl]);
     
     return {
       success: true,
@@ -304,7 +317,8 @@ function getUploadedFiles() {
         files.push({
           time: row[0],
           className: row[1].toString(),
-          seat: row[2].toString(),
+          // 修改：讀取座號時，自動補 0 (例如 7 -> 07)，確保跟登入資訊一致
+          seat: row[2].toString().padStart(2, '0'),
           folder: row[3],
           fileName: row[4],
           url: row[5]

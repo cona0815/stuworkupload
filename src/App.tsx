@@ -261,27 +261,24 @@ export default function App() {
               <User className="w-8 h-8" />
             </div>
             <h1 className="text-2xl font-bold text-gray-800">學生個人專屬空間</h1>
-            <p className="text-gray-500 mt-2">請輸入班級座號登入 (例: 40130)</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">帳號 (班級+座號)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">帳號</label>
               <input
                 type="text"
                 value={loginAccount}
                 onChange={(e) => setLoginAccount(e.target.value)}
-                placeholder="例如：40130"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">密碼 (同帳號)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">密碼</label>
               <input
                 type="password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder="請再次輸入班級座號"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
               />
             </div>
