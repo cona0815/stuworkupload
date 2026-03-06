@@ -70,6 +70,7 @@ function doPost(e) {
 
 /**
  * 獲取初始化資料 (資料夾選項)
+ * 自動化功能：如果發現有「名稱」但沒有「ID」的列，會自動建立資料夾並回填 ID
  */
 function getInitialData() {
   try {
@@ -80,13 +81,46 @@ function getInitialData() {
       return { success: false, message: '找不到「資料夾設定」分頁' };
     }
     
-    const rows = folderSheet.getDataRange().getValues();
-    // 假設第一列是標題，從第二列開始讀取
-    // A欄: 顯示名稱, B欄: 資料夾ID
+    // 取得目前試算表所在的資料夾 (新資料夾會建在這裡)
+    let parentFolder;
+    try {
+      const parents = DriveApp.getFileById(ss.getId()).getParents();
+      if (parents.hasNext()) {
+        parentFolder = parents.next();
+      } else {
+        parentFolder = DriveApp.getRootFolder();
+      }
+    } catch (e) {
+      parentFolder = DriveApp.getRootFolder();
+    }
+    
+    const range = folderSheet.getDataRange();
+    const rows = range.getValues();
     const folders = [];
-    for (let i = 1; i < rows.length; i++) {
-      if (rows[i][0]) {
-        folders.push(rows[i][0]);
+    
+    // 遍歷每一列檢查是否需要建立資料夾
+    for (let i = 0; i < rows.length; i++) {
+      const name = rows[i][0]; // A欄: 名稱
+      let id = rows[i][1];     // B欄: ID
+      
+      // 跳過空名稱或標題列
+      if (!name || name === '顯示名稱' || name === '資料夾名稱') continue;
+      
+      // 如果沒有 ID，自動建立資料夾
+      if (!id) {
+        try {
+          const newFolder = parentFolder.createFolder(name);
+          id = newFolder.getId();
+          
+          // 將 ID 寫回試算表 B 欄 (i+1 是列號, 2 是 B 欄)
+          folderSheet.getRange(i + 1, 2).setValue(id);
+        } catch (err) {
+          Logger.log('建立資料夾失敗: ' + err.toString());
+        }
+      }
+      
+      if (name) {
+        folders.push(name);
       }
     }
     
@@ -143,6 +177,8 @@ function login(account, password) {
 
 /**
  * 上傳檔案
+ * 自動建立班級子資料夾 (例如：作業一 > 401 > 檔案)
+ * 容錯機制：如果發現資料夾 ID 空白，會自動補建主資料夾
  */
 function uploadBase64File(fileInfo, selectedFolder, className, seat) {
   try {
@@ -152,29 +188,70 @@ function uploadBase64File(fileInfo, selectedFolder, className, seat) {
     const configSheet = ss.getSheetByName('資料夾設定');
     const configRows = configSheet.getDataRange().getValues();
     let folderId = '';
+    let rowIndex = -1;
     
     for (let i = 1; i < configRows.length; i++) {
       if (configRows[i][0] === selectedFolder) {
         folderId = configRows[i][1];
+        rowIndex = i;
         break;
       }
     }
     
+    // 如果找不到該選項名稱
+    if (rowIndex === -1) {
+      return { success: false, message: '找不到此作業項目: ' + selectedFolder };
+    }
+
+    // 如果有名稱但沒有 ID (自動修復機制)
     if (!folderId) {
-      return { success: false, message: '找不到對應的 Google Drive 資料夾 ID' };
+      try {
+        // 取得試算表所在的父資料夾
+        const parents = DriveApp.getFileById(ss.getId()).getParents();
+        const parentFolder = parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
+        
+        // 建立新資料夾
+        const newFolder = parentFolder.createFolder(selectedFolder);
+        folderId = newFolder.getId();
+        
+        // 補填回試算表 (列號是 i+1, B欄是 2)
+        configSheet.getRange(rowIndex + 1, 2).setValue(folderId);
+      } catch (err) {
+        return { success: false, message: '自動建立資料夾失敗: ' + err.toString() };
+      }
+    }
+    
+    if (!folderId) {
+      return { success: false, message: '無法取得有效的資料夾 ID' };
     }
     
     // 2. 上傳至 Drive
-    const folder = DriveApp.getFolderById(folderId);
+    const mainFolder = DriveApp.getFolderById(folderId);
+    
+    // 檢查或建立班級子資料夾 (例如：401)
+    let classFolder;
+    const folders = mainFolder.getFoldersByName(className);
+    if (folders.hasNext()) {
+      classFolder = folders.next();
+    } else {
+      classFolder = mainFolder.createFolder(className);
+    }
+
+    // 解碼 Base64 並建立 Blob
+    let base64String = fileInfo.base64Data;
+    if (base64String.indexOf('base64,') > -1) {
+      base64String = base64String.split('base64,')[1];
+    }
+
     const blob = Utilities.newBlob(
-      Utilities.base64Decode(fileInfo.base64Data), 
+      Utilities.base64Decode(base64String), 
       fileInfo.mimeType, 
       fileInfo.fileName
     );
     
     // 重新命名檔案: 班級-座號_原始檔名
     const newFileName = `${className}-${seat}_${fileInfo.fileName}`;
-    const file = folder.createFile(blob);
+    const file = classFolder.createFile(blob);
     file.setName(newFileName);
     
     // 設定檔案權限 (視需求開啟)
@@ -189,7 +266,9 @@ function uploadBase64File(fileInfo, selectedFolder, className, seat) {
     }
     
     const time = new Date();
-    logSheet.appendRow([time, className, seat, selectedFolder, newFileName, fileUrl]);
+    // 格式化時間為字串，避免時區問題
+    const formattedTime = Utilities.formatDate(time, Session.getScriptTimeZone(), "yyyy/MM/dd HH:mm:ss");
+    logSheet.appendRow([formattedTime, className, seat, selectedFolder, newFileName, fileUrl]);
     
     return {
       success: true,
