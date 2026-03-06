@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# 處理 SPA (單頁應用) 的路由重導向
+# 避免重新整理頁面時出現 404 錯誤
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
