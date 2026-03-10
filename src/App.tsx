@@ -586,7 +586,7 @@ export default function App() {
 
         {/* Status Toast */}
         {status.type !== 'idle' && (
-          <div className={`fixed bottom-10 left-1/2 transform -translate-x-1/2 px-8 py-4 rounded-2xl shadow-2xl flex items-center justify-between space-x-6 z-50 animate-in slide-in-from-bottom-8 fade-in duration-500 ${
+          <div className={`fixed top-8 left-1/2 transform -translate-x-1/2 px-8 py-4 rounded-2xl shadow-2xl flex items-center justify-between space-x-6 z-50 animate-in slide-in-from-top-8 fade-in duration-500 ${
             status.type === 'loading' ? 'bg-blue-600 text-white' :
             status.type === 'success' ? 'bg-green-600 text-white border-4 border-green-400 shadow-[0_0_30px_rgba(22,163,74,0.6)]' :
             'bg-red-600 text-white border-2 border-red-400'
