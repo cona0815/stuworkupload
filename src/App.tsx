@@ -15,7 +15,8 @@ import {
   Folder, 
   File,
   LogOut,
-  User
+  User,
+  X
 } from 'lucide-react';
 import { backend, FileRecord, UserSession } from './lib/api';
 
@@ -50,6 +51,7 @@ export default function App() {
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const step3Ref = useRef<HTMLDivElement>(null);
+  const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // --- Effects ---
   useEffect(() => {
@@ -234,12 +236,21 @@ export default function App() {
 
   const showStatus = (type: StatusType, message: string) => {
     setStatus({ type, message });
+    if (statusTimeoutRef.current) {
+      clearTimeout(statusTimeoutRef.current);
+    }
     if (type !== 'loading') {
-      setTimeout(() => setStatus({ type: 'idle', message: '' }), 5000);
+      // 成功訊息持續 60 秒 (60000ms)，錯誤訊息持續 5 秒
+      const duration = type === 'success' ? 60000 : 5000;
+      statusTimeoutRef.current = setTimeout(() => setStatus({ type: 'idle', message: '' }), duration);
     }
   };
 
   // --- Derived State ---
+  const step1Active = !selectedFolder;
+  const step2Active = !!selectedFolder && !selectedFile;
+  const step3Active = !!selectedFolder && !!selectedFile;
+
   const uniqueFolders = Array.from(new Set(uploadedFiles.map(f => f.folder).filter(Boolean)));
   const filteredFiles = fileFilter === 'all' 
     ? uploadedFiles 
@@ -362,8 +373,11 @@ export default function App() {
             <form onSubmit={handleSubmit} className="space-y-8">
               
               {/* Step 1 */}
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold shadow-sm">1</div>
+              <div className={`flex items-start space-x-4 p-4 rounded-xl transition-all duration-300 ${step1Active ? 'bg-blue-50/50 border border-blue-100' : ''}`}>
+                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-sm transition-all duration-300 ${
+                  step1Active ? 'bg-blue-500 text-white ring-4 ring-blue-300 ring-offset-2 shadow-[0_0_15px_rgba(59,130,246,0.6)] scale-110' :
+                  selectedFolder ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-500'
+                }`}>1</div>
                 <div className="flex-grow">
                   <label htmlFor="folderSelect" className="block text-lg font-medium text-gray-800 mb-2">選擇作業項目</label>
                   <div className="relative">
@@ -385,8 +399,11 @@ export default function App() {
               </div>
 
               {/* Step 2 */}
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold shadow-sm">2</div>
+              <div className={`flex items-start space-x-4 p-4 rounded-xl transition-all duration-300 ${step2Active ? 'bg-orange-50/50 border border-orange-100' : ''}`}>
+                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-sm transition-all duration-300 ${
+                  step2Active ? 'bg-orange-500 text-white ring-4 ring-orange-300 ring-offset-2 shadow-[0_0_15px_rgba(249,115,22,0.6)] scale-110' :
+                  selectedFile ? 'bg-orange-500 text-white' : 'bg-gray-300 text-gray-500'
+                }`}>2</div>
                 <div className="flex-grow">
                   <label className="block text-lg font-medium text-gray-800 mb-2">上傳檔案</label>
                   <div 
@@ -428,12 +445,19 @@ export default function App() {
 
               {/* Step 3 */}
               {selectedFile && (
-                <div ref={step3Ref} className="pt-6 flex justify-center items-center space-x-4 animate-in slide-in-from-bottom-4 duration-500">
-                  <div className="flex-shrink-0 w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold animate-bounce shadow-sm">3</div>
+                <div ref={step3Ref} className={`pt-6 pb-2 flex justify-center items-center space-x-4 animate-in slide-in-from-bottom-4 duration-500 p-4 rounded-xl transition-all ${step3Active ? 'bg-purple-50/50 border border-purple-100' : ''}`}>
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-sm transition-all duration-300 ${
+                    step3Active ? 'bg-purple-500 text-white ring-4 ring-purple-300 ring-offset-2 shadow-[0_0_15px_rgba(168,85,247,0.6)] scale-110' :
+                    'bg-gray-300 text-gray-500'
+                  }`}>3</div>
                   <button 
                     type="submit" 
                     disabled={isLoading}
-                    className="w-full md:w-2/3 flex justify-center items-center bg-blue-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition disabled:bg-gray-400 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                    className={`w-full md:w-2/3 flex justify-center items-center font-bold py-4 px-6 rounded-xl focus:outline-none transition-all duration-300 ${
+                      isLoading 
+                        ? 'bg-gray-400 text-white cursor-not-allowed' 
+                        : 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.6)] hover:bg-blue-700 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(37,99,235,0.8)] ring-4 ring-blue-300 ring-offset-2 animate-pulse'
+                    }`}
                   >
                     {isLoading ? (
                       <>
@@ -562,15 +586,29 @@ export default function App() {
 
         {/* Status Toast */}
         {status.type !== 'idle' && (
-          <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-xl flex items-center space-x-2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300 ${
+          <div className={`fixed bottom-10 left-1/2 transform -translate-x-1/2 px-8 py-4 rounded-2xl shadow-2xl flex items-center justify-between space-x-6 z-50 animate-in slide-in-from-bottom-8 fade-in duration-500 ${
             status.type === 'loading' ? 'bg-blue-600 text-white' :
-            status.type === 'success' ? 'bg-green-600 text-white' :
-            'bg-red-600 text-white'
+            status.type === 'success' ? 'bg-green-600 text-white border-4 border-green-400 shadow-[0_0_30px_rgba(22,163,74,0.6)]' :
+            'bg-red-600 text-white border-2 border-red-400'
           }`}>
-            {status.type === 'loading' && <Loader2 className="w-5 h-5 animate-spin" />}
-            {status.type === 'success' && <CheckCircle className="w-5 h-5" />}
-            {status.type === 'error' && <AlertCircle className="w-5 h-5" />}
-            <span className="font-medium">{status.message}</span>
+            <div className="flex items-center space-x-3">
+              {status.type === 'loading' && <Loader2 className="w-7 h-7 animate-spin" />}
+              {status.type === 'success' && <CheckCircle className="w-8 h-8" />}
+              {status.type === 'error' && <AlertCircle className="w-7 h-7" />}
+              <span className="font-bold text-xl">{status.message}</span>
+            </div>
+            {status.type !== 'loading' && (
+              <button 
+                onClick={() => {
+                  setStatus({ type: 'idle', message: '' });
+                  if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current);
+                }} 
+                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                title="關閉"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            )}
           </div>
         )}
 
