@@ -79,7 +79,7 @@ export default function App() {
       const res = await backend.login(loginAccount, loginPassword);
       if (res.success && res.user) {
         setUser(res.user);
-        showStatus('success', `歡迎回來，${res.user.className}班 ${res.user.seat}號`);
+        // 移除登入成功的提示訊息
       } else {
         showStatus('error', res.message || '登入失敗');
       }
@@ -240,9 +240,10 @@ export default function App() {
       clearTimeout(statusTimeoutRef.current);
     }
     if (type !== 'loading') {
-      // 成功訊息持續 60 秒 (60000ms)，錯誤訊息持續 5 秒
-      const duration = type === 'success' ? 60000 : 5000;
-      statusTimeoutRef.current = setTimeout(() => setStatus({ type: 'idle', message: '' }), duration);
+      // 成功訊息不再自動消失 (除非使用者點擊關閉)，錯誤訊息持續 5 秒
+      if (type === 'error') {
+        statusTimeoutRef.current = setTimeout(() => setStatus({ type: 'idle', message: '' }), 5000);
+      }
     }
   };
 
@@ -261,6 +262,14 @@ export default function App() {
     const dateB = new Date(b.time).getTime();
     return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
   });
+
+  // 找出所有檔案中最晚的上傳時間
+  const newestTimestamp = sortedFiles.length > 0 
+    ? Math.max(...sortedFiles.map(f => {
+        const d = new Date(f.time).getTime();
+        return isNaN(d) ? 0 : d;
+      }))
+    : 0;
 
   // --- Login View ---
   if (!user) {
@@ -545,6 +554,9 @@ export default function App() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
                   {sortedFiles.map((file, idx) => {
                     const date = new Date(file.time);
+                    const fileTimestamp = date.getTime();
+                    const isNewest = fileTimestamp === newestTimestamp && newestTimestamp > 0;
+                    
                     const timeStr = isNaN(date.getTime()) 
                       ? file.time 
                       : `${date.getMonth()+1}/${date.getDate()} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
@@ -556,15 +568,25 @@ export default function App() {
                         download={file.fileName}
                         target="_blank"
                         rel="noreferrer"
-                        className="relative bg-white p-4 rounded-xl border border-gray-200 hover:shadow-lg hover:-translate-y-1 hover:border-blue-400 transition-all duration-200 flex flex-col items-center text-center group cursor-pointer overflow-hidden animate-in zoom-in duration-300"
+                        className={`relative bg-white p-4 rounded-xl border hover:shadow-lg hover:-translate-y-1 transition-all duration-200 flex flex-col items-center text-center group cursor-pointer overflow-hidden animate-in zoom-in duration-300 ${
+                          isNewest ? 'border-blue-400 ring-2 ring-blue-100 shadow-md' : 'border-gray-200 hover:border-blue-400'
+                        }`}
                         style={{ animationDelay: `${idx * 50}ms` }}
                         title="點擊下載檔案"
                       >
-                        <span className="absolute top-2 left-2 bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-1 rounded w-max max-w-[80%] truncate shadow-sm">
+                        <span className="absolute top-2 left-2 bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-1 rounded w-max max-w-[60%] truncate shadow-sm">
                           {file.folder}
                         </span>
+
+                        {isNewest && (
+                          <span className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded shadow-sm animate-bounce">
+                            NEW
+                          </span>
+                        )}
                         
-                        <File className="w-16 h-16 text-blue-400 mt-6 mb-3 group-hover:scale-110 group-hover:text-blue-500 transition-transform duration-200" />
+                        <File className={`w-16 h-16 mt-6 mb-3 group-hover:scale-110 transition-transform duration-200 ${
+                          isNewest ? 'text-blue-600' : 'text-blue-400 group-hover:text-blue-500'
+                        }`} />
 
                         <h3 className="text-sm font-bold text-gray-800 w-full truncate px-1" title={file.fileName}>
                           {file.fileName}
@@ -584,32 +606,60 @@ export default function App() {
           </div>
         )}
 
-        {/* Status Toast */}
+        {/* Status Toast / Modal */}
         {status.type !== 'idle' && (
-          <div className={`fixed top-8 left-1/2 transform -translate-x-1/2 px-8 py-4 rounded-2xl shadow-2xl flex items-center justify-between space-x-6 z-50 animate-in slide-in-from-top-8 fade-in duration-500 ${
-            status.type === 'loading' ? 'bg-blue-600 text-white' :
-            status.type === 'success' ? 'bg-green-600 text-white border-4 border-green-400 shadow-[0_0_30px_rgba(22,163,74,0.6)]' :
-            'bg-red-600 text-white border-2 border-red-400'
-          }`}>
-            <div className="flex items-center space-x-3">
-              {status.type === 'loading' && <Loader2 className="w-7 h-7 animate-spin" />}
-              {status.type === 'success' && <CheckCircle className="w-8 h-8" />}
-              {status.type === 'error' && <AlertCircle className="w-7 h-7" />}
-              <span className="font-bold text-xl">{status.message}</span>
-            </div>
-            {status.type !== 'loading' && (
-              <button 
-                onClick={() => {
-                  setStatus({ type: 'idle', message: '' });
-                  if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current);
-                }} 
-                className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                title="關閉"
-              >
-                <X className="w-6 h-6" />
-              </button>
+          <>
+            {/* 成功時顯示半透明背景，加強置中提示感 */}
+            {status.type === 'success' && (
+              <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[49] animate-in fade-in duration-300" />
             )}
-          </div>
+            
+            <div className={`fixed z-50 transition-all duration-500 flex flex-col items-center justify-center ${
+              status.type === 'success' 
+                ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-2xl p-10 rounded-3xl animate-in zoom-in-95 fade-in' 
+                : 'top-8 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl animate-in slide-in-from-top-8 fade-in'
+            } shadow-2xl ${
+              status.type === 'loading' ? 'bg-blue-600 text-white' :
+              status.type === 'success' ? 'bg-green-600 text-white border-8 border-green-400 shadow-[0_0_50px_rgba(22,163,74,0.8)]' :
+              'bg-red-600 text-white border-2 border-red-400'
+            }`}>
+              <div className={`flex items-center ${status.type === 'success' ? 'flex-col space-y-6 text-center' : 'space-x-4'}`}>
+                {status.type === 'loading' && <Loader2 className="w-7 h-7 animate-spin" />}
+                {status.type === 'success' && <CheckCircle className="w-24 h-24 mb-2" />}
+                {status.type === 'error' && <AlertCircle className="w-7 h-7" />}
+                
+                <div className="flex flex-col">
+                  {status.type === 'success' && <span className="text-3xl font-black mb-2 tracking-wider">上傳成功！</span>}
+                  <span className={`font-bold ${status.type === 'success' ? 'text-2xl leading-relaxed' : 'text-xl'}`}>
+                    {status.message}
+                  </span>
+                </div>
+              </div>
+
+              {status.type !== 'loading' && (
+                <button 
+                  onClick={() => {
+                    setStatus({ type: 'idle', message: '' });
+                    if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current);
+                  }} 
+                  className={`hover:bg-white/20 rounded-full transition-all duration-200 ${
+                    status.type === 'success' 
+                      ? 'mt-10 bg-white/10 px-10 py-3 border border-white/30 hover:scale-105 active:scale-95' 
+                      : 'ml-6 p-2'
+                  }`}
+                  title="關閉"
+                >
+                  {status.type === 'success' ? (
+                    <span className="text-xl font-bold flex items-center">
+                      我知道了 <X className="w-6 h-6 ml-2" />
+                    </span>
+                  ) : (
+                    <X className="w-6 h-6" />
+                  )}
+                </button>
+              )}
+            </div>
+          </>
         )}
 
       </div>
