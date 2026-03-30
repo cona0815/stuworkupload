@@ -21,7 +21,6 @@ import {
 import { backend, FileRecord, UserSession } from './lib/api';
 
 // --- Types ---
-type Tab = 'upload' | 'download';
 type StatusType = 'loading' | 'success' | 'error' | 'idle';
 
 export default function App() {
@@ -31,7 +30,6 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
 
   // --- App State ---
-  const [activeTab, setActiveTab] = useState<Tab>('upload');
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<{ type: StatusType; message: string }>({ type: 'idle', message: '' });
   
@@ -57,14 +55,9 @@ export default function App() {
   useEffect(() => {
     if (user) {
       loadInitialData();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (user && activeTab === 'download') {
       loadUploadedFiles();
     }
-  }, [user, activeTab]);
+  }, [user]);
 
   // --- Actions ---
   const handleLogin = async (e: React.FormEvent) => {
@@ -96,7 +89,6 @@ export default function App() {
     setLoginPassword('');
     setSelectedFolder('');
     setSelectedFile(null);
-    setActiveTab('upload');
   };
 
   const loadInitialData = async () => {
@@ -240,8 +232,10 @@ export default function App() {
       clearTimeout(statusTimeoutRef.current);
     }
     if (type !== 'loading') {
-      // 成功訊息不再自動消失 (除非使用者點擊關閉)，錯誤訊息持續 5 秒
-      if (type === 'error') {
+      // 成功訊息持續一分鐘 (60000ms)，錯誤訊息持續 5 秒
+      if (type === 'success') {
+        statusTimeoutRef.current = setTimeout(() => setStatus({ type: 'idle', message: '' }), 60000);
+      } else if (type === 'error') {
         statusTimeoutRef.current = setTimeout(() => setStatus({ type: 'idle', message: '' }), 5000);
       }
     }
@@ -350,36 +344,145 @@ export default function App() {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 mb-8">
-          <button 
-            onClick={() => setActiveTab('upload')}
-            className={`py-2 px-6 border-b-2 font-bold focus:outline-none transition-colors flex items-center gap-2 ${
-              activeTab === 'upload' 
-                ? 'border-blue-500 text-blue-600' 
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <UploadCloud className="w-4 h-4" />
-            上傳作業
-          </button>
-          <button 
-            onClick={() => setActiveTab('download')}
-            className={`py-2 px-6 border-b-2 font-bold focus:outline-none transition-colors flex items-center gap-2 ${
-              activeTab === 'download' 
-                ? 'border-blue-500 text-blue-600' 
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <FolderOpen className="w-4 h-4" />
-            我的檔案
-          </button>
+        {/* Instructions Banner */}
+        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 rounded-r-lg shadow-sm">
+          <h3 className="text-blue-800 font-bold mb-2 flex items-center">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            操作說明：
+          </h3>
+          <ol className="list-decimal list-inside text-blue-700 space-y-1 font-medium">
+            <li>登入後請到「我的檔案」，下載最新的檔案到桌面。</li>
+            <li>打開桌面的檔案確認。</li>
+          </ol>
         </div>
 
-        {/* Upload Section */}
-        {activeTab === 'upload' && (
-          <div className="max-w-2xl mx-auto animate-in fade-in duration-300">
-            <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          {/* Download Section (Left) */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex flex-col h-full animate-in fade-in slide-in-from-left-4 duration-500 order-1">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-gray-100 pb-4">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center">
+                <FolderOpen className="w-6 h-6 text-blue-500 mr-2" />
+                我的檔案
+              </h2>
+              <button 
+                onClick={loadUploadedFiles}
+                disabled={isLoadingFiles}
+                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition flex items-center font-medium shadow-sm border border-gray-200 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingFiles ? 'animate-spin' : ''}`} />
+                重新整理
+              </button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="relative flex-1">
+                <select 
+                  value={fileFilter}
+                  onChange={(e) => setFileFilter(e.target.value)}
+                  className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer appearance-none"
+                >
+                  <option value="all">所有作業</option>
+                  {uniqueFolders.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-3 text-gray-500">
+                  <Folder className="w-4 h-4" />
+                </div>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                </div>
+              </div>
+
+              <div className="relative flex-1">
+                <select 
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                  className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer appearance-none"
+                >
+                  <option value="newest">最新日期在先</option>
+                  <option value="oldest">最舊日期在先</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-3 text-gray-500">
+                  <RefreshCw className="w-4 h-4" />
+                </div>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex-grow overflow-y-auto max-h-[600px] custom-scrollbar">
+              {isLoadingFiles ? (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-500">
+                  <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                  <p className="font-medium text-lg">正在載入檔案，請稍候...</p>
+                </div>
+              ) : sortedFiles.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                  <FolderOpen className="w-16 h-16 mb-4 opacity-50" />
+                  <p className="text-lg font-medium">您還沒有上傳任何檔案</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {sortedFiles.map((file, idx) => {
+                    const date = new Date(file.time);
+                    const fileTimestamp = date.getTime();
+                    const isNewest = fileTimestamp === newestTimestamp && newestTimestamp > 0;
+                    
+                    const timeStr = isNaN(date.getTime()) 
+                      ? file.time 
+                      : `${date.getMonth()+1}/${date.getDate()} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+                    
+                    return (
+                      <a 
+                        key={idx}
+                        href={file.url}
+                        download={file.fileName}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`relative bg-white p-4 rounded-xl border hover:shadow-lg hover:-translate-y-1 transition-all duration-200 flex flex-col items-center text-center group cursor-pointer overflow-hidden animate-in zoom-in duration-300 ${
+                          isNewest ? 'border-blue-400 ring-2 ring-blue-100 shadow-md' : 'border-gray-200 hover:border-blue-400'
+                        }`}
+                        style={{ animationDelay: `${idx * 50}ms` }}
+                        title="點擊下載檔案"
+                      >
+                        <span className="absolute top-2 left-2 bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-1 rounded w-max max-w-[60%] truncate shadow-sm">
+                          {file.folder}
+                        </span>
+
+                        {isNewest && (
+                          <span className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded shadow-sm animate-bounce">
+                            NEW
+                          </span>
+                        )}
+                        
+                        <File className={`w-12 h-12 mt-6 mb-3 group-hover:scale-110 transition-transform duration-200 ${
+                          isNewest ? 'text-blue-600' : 'text-blue-400 group-hover:text-blue-500'
+                        }`} />
+
+                        <h3 className="text-sm font-bold text-gray-800 w-full truncate px-1" title={file.fileName}>
+                          {file.fileName}
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1 font-medium bg-gray-100 px-2 py-0.5 rounded-full w-max max-w-full truncate">
+                          {file.className} {file.seat}號
+                        </p>
+                        <p className="text-[11px] text-gray-400 mt-2">
+                          {timeStr}
+                        </p>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Upload Section (Right) */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-500 order-2">
+            <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
+              <UploadCloud className="w-6 h-6 text-blue-500 mr-2" />
+              <h2 className="text-2xl font-bold text-gray-800">上傳作業</h2>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-8 flex-grow">
               
               {/* Step 1 */}
               <div className={`flex items-start space-x-4 p-4 rounded-xl transition-all duration-300 ${step1Active ? 'bg-blue-50/50 border border-blue-100' : ''}`}>
@@ -479,132 +582,7 @@ export default function App() {
               )}
             </form>
           </div>
-        )}
-
-        {/* Download Section */}
-        {activeTab === 'download' && (
-          <div className="animate-in fade-in duration-300">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-              <div className="flex items-center space-x-4">
-                <h2 className="text-xl font-bold text-gray-800 flex items-center">
-                  <Folder className="w-6 h-6 text-yellow-500 mr-2" />
-                  我的檔案庫
-                </h2>
-                <div className="relative">
-                  <select 
-                    value={fileFilter}
-                    onChange={(e) => setFileFilter(e.target.value)}
-                    className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer appearance-none"
-                  >
-                    <option value="all">所有作業</option>
-                    {uniqueFolders.map(f => <option key={f} value={f}>{f}</option>)}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-3 text-gray-500">
-                    <Folder className="w-4 h-4" />
-                  </div>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                  </div>
-                </div>
-
-                {/* Sort Order */}
-                <div className="relative">
-                  <select 
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                    className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer appearance-none"
-                  >
-                    <option value="newest">最新日期在先</option>
-                    <option value="oldest">最舊日期在先</option>
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-3 text-gray-500">
-                    <RefreshCw className="w-4 h-4" />
-                  </div>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                  </div>
-                </div>
-              </div>
-
-              <button 
-                onClick={loadUploadedFiles}
-                disabled={isLoadingFiles}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition flex items-center font-medium shadow-sm border border-gray-200 disabled:opacity-50"
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingFiles ? 'animate-spin' : ''}`} />
-                重新整理
-              </button>
-            </div>
-
-            <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 min-h-[300px]">
-              {isLoadingFiles ? (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-500">
-                  <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
-                  <p className="font-medium text-lg">正在載入檔案，請稍候...</p>
-                </div>
-              ) : sortedFiles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-                  <FolderOpen className="w-16 h-16 mb-4 opacity-50" />
-                  <p className="text-lg font-medium">您還沒有上傳任何檔案</p>
-                  <button onClick={() => setActiveTab('upload')} className="mt-4 text-blue-600 hover:underline">
-                    去上傳第一份作業吧！
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-                  {sortedFiles.map((file, idx) => {
-                    const date = new Date(file.time);
-                    const fileTimestamp = date.getTime();
-                    const isNewest = fileTimestamp === newestTimestamp && newestTimestamp > 0;
-                    
-                    const timeStr = isNaN(date.getTime()) 
-                      ? file.time 
-                      : `${date.getMonth()+1}/${date.getDate()} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
-                    
-                    return (
-                      <a 
-                        key={idx}
-                        href={file.url}
-                        download={file.fileName}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={`relative bg-white p-4 rounded-xl border hover:shadow-lg hover:-translate-y-1 transition-all duration-200 flex flex-col items-center text-center group cursor-pointer overflow-hidden animate-in zoom-in duration-300 ${
-                          isNewest ? 'border-blue-400 ring-2 ring-blue-100 shadow-md' : 'border-gray-200 hover:border-blue-400'
-                        }`}
-                        style={{ animationDelay: `${idx * 50}ms` }}
-                        title="點擊下載檔案"
-                      >
-                        <span className="absolute top-2 left-2 bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-1 rounded w-max max-w-[60%] truncate shadow-sm">
-                          {file.folder}
-                        </span>
-
-                        {isNewest && (
-                          <span className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded shadow-sm animate-bounce">
-                            NEW
-                          </span>
-                        )}
-                        
-                        <File className={`w-16 h-16 mt-6 mb-3 group-hover:scale-110 transition-transform duration-200 ${
-                          isNewest ? 'text-blue-600' : 'text-blue-400 group-hover:text-blue-500'
-                        }`} />
-
-                        <h3 className="text-sm font-bold text-gray-800 w-full truncate px-1" title={file.fileName}>
-                          {file.fileName}
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-1 font-medium bg-gray-100 px-2 py-0.5 rounded-full w-max max-w-full truncate">
-                          {file.className} {file.seat}號
-                        </p>
-                        <p className="text-[11px] text-gray-400 mt-2">
-                          {timeStr}
-                        </p>
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        </div>
 
         {/* Status Toast / Modal */}
         {status.type !== 'idle' && (
