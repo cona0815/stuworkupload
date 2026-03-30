@@ -16,9 +16,11 @@ import {
   File,
   LogOut,
   User,
-  X
+  X,
+  ShieldCheck
 } from 'lucide-react';
 import { backend, FileRecord, UserSession } from './lib/api';
+import TeacherDashboard from './components/TeacherDashboard';
 
 // --- Types ---
 type StatusType = 'loading' | 'success' | 'error' | 'idle';
@@ -28,6 +30,8 @@ export default function App() {
   const [user, setUser] = useState<UserSession | null>(null);
   const [loginAccount, setLoginAccount] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [isTeacherView, setIsTeacherView] = useState(false);
+  const [isTeacherLogin, setIsTeacherLogin] = useState(false);
 
   // --- App State ---
   const [isLoading, setIsLoading] = useState(false);
@@ -80,6 +84,17 @@ export default function App() {
       showStatus('error', error.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleTeacherLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loginPassword === '0088') {
+      setIsTeacherView(true);
+      setIsTeacherLogin(false);
+      setLoginPassword('');
+    } else {
+      showStatus('error', '教師密碼錯誤');
     }
   };
 
@@ -266,7 +281,61 @@ export default function App() {
     : 0;
 
   // --- Login View ---
-  if (!user) {
+  if (!user && !isTeacherView) {
+    if (isTeacherLogin) {
+      return (
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans text-gray-800">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 animate-in fade-in zoom-in duration-300">
+            <div className="text-center mb-8">
+              <div className="bg-purple-500 text-white p-4 rounded-full inline-flex mb-4 shadow-md">
+                <ShieldCheck className="w-8 h-8" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-800">教師管理登入</h1>
+            </div>
+
+            <form onSubmit={handleTeacherLogin} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">請輸入管理密碼</label>
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition"
+                  placeholder="預設密碼 0088"
+                  autoFocus
+                />
+              </div>
+              
+              <button
+                type="submit"
+                className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg hover:bg-purple-700 transition shadow-md flex justify-center items-center"
+              >
+                登入管理介面
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTeacherLogin(false);
+                  setLoginPassword('');
+                }}
+                className="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-lg hover:bg-gray-200 transition flex justify-center items-center"
+              >
+                返回學生登入
+              </button>
+            </form>
+
+            {status.type === 'error' && (
+              <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm flex items-center justify-center animate-in shake">
+                <AlertCircle className="w-4 h-4 mr-2" />
+                {status.message}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans text-gray-800">
         <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 animate-in fade-in zoom-in duration-300">
@@ -304,6 +373,25 @@ export default function App() {
             >
               {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : '登入系統'}
             </button>
+
+            <div className="relative flex items-center py-2">
+              <div className="flex-grow border-t border-gray-200"></div>
+              <span className="flex-shrink mx-4 text-gray-400 text-sm">或者</span>
+              <div className="flex-grow border-t border-gray-200"></div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsTeacherLogin(true);
+                setLoginPassword('');
+                setLoginAccount('');
+              }}
+              className="w-full bg-white border-2 border-purple-500 text-purple-600 font-bold py-3 rounded-lg hover:bg-purple-50 transition flex justify-center items-center"
+            >
+              <ShieldCheck className="w-5 h-5 mr-2" />
+              教師管理介面
+            </button>
           </form>
 
           {status.type === 'error' && (
@@ -315,6 +403,10 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  if (isTeacherView) {
+    return <TeacherDashboard onBack={() => setIsTeacherView(false)} />;
   }
 
   // --- Main App View (Personal Space) ---
