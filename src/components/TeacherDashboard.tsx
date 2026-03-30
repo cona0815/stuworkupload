@@ -154,35 +154,35 @@ export default function TeacherDashboard({ onBack }: TeacherDashboardProps) {
         </div>
 
         {/* Grid */}
-        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-md border border-gray-200">
-          <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-md border border-gray-200">
+          <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
             座號繳交狀態 (1-32)
-            <span className="ml-3 text-sm font-normal text-gray-500">
+            <span className="ml-3 text-xs font-normal text-gray-500">
               綠色表示今日已上傳檔案
             </span>
           </h2>
           
           {isLoading ? (
-            <div className="flex justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="flex justify-center py-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
           ) : (
-            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 md:gap-4">
+            <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-2 md:gap-3">
               {seats.map(seat => {
                 const isSubmitted = getSubmissionStatus(seat);
                 return (
                   <div 
                     key={seat}
                     className={`
-                      aspect-square flex flex-col items-center justify-center rounded-xl border-2 transition-all duration-300
+                      aspect-square flex flex-col items-center justify-center rounded-lg border-2 transition-all duration-300
                       ${isSubmitted 
-                        ? 'bg-green-50 border-green-500 text-green-700 shadow-[0_0_10px_rgba(34,197,94,0.2)]' 
-                        : 'bg-white border-gray-200 text-gray-400'
+                        ? 'bg-green-50 border-green-500 text-green-700 shadow-[0_0_5px_rgba(34,197,94,0.2)]' 
+                        : 'bg-white border-gray-200 text-gray-300'
                       }
                     `}
                   >
-                    <span className="text-lg md:text-xl font-bold">{seat}</span>
-                    {isSubmitted && <CheckCircle2 className="w-4 h-4 mt-1" />}
+                    <span className="text-sm md:text-base font-bold">{seat}</span>
+                    {isSubmitted && <CheckCircle2 className="w-3 h-3 mt-0.5" />}
                   </div>
                 );
               })}

@@ -17,7 +17,9 @@ import {
   LogOut,
   User,
   X,
-  ShieldCheck
+  ShieldCheck,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { backend, FileRecord, UserSession } from './lib/api';
 import TeacherDashboard from './components/TeacherDashboard';
@@ -32,6 +34,7 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [isTeacherView, setIsTeacherView] = useState(false);
   const [isTeacherLogin, setIsTeacherLogin] = useState(false);
+  const [showStudentPassword, setShowStudentPassword] = useState(false);
 
   // --- App State ---
   const [isLoading, setIsLoading] = useState(false);
@@ -301,7 +304,6 @@ export default function App() {
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition"
-                  placeholder="預設密碼 0088"
                   autoFocus
                 />
               </div>
@@ -358,12 +360,21 @@ export default function App() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">密碼</label>
-              <input
-                type="password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-              />
+              <div className="relative">
+                <input
+                  type={showStudentPassword ? "text" : "password"}
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowStudentPassword(!showStudentPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                >
+                  {showStudentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
             
             <button
