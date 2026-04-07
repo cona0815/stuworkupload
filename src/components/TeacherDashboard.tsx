@@ -21,6 +21,13 @@ export default function TeacherDashboard({ onBack }: TeacherDashboardProps) {
   const [folders, setFolders] = useState<string[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [classes, setClasses] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
 
   useEffect(() => {
     loadData();
@@ -50,15 +57,18 @@ export default function TeacherDashboard({ onBack }: TeacherDashboardProps) {
     }
   };
 
-  const today = new Date().toLocaleDateString();
-  
-  // Filter files for today and selected criteria
+  // Filter files for selected date and criteria
   const getSubmissionStatus = (seatNumber: number) => {
     const seatStr = seatNumber.toString().padStart(2, '0');
     
     return allFiles.some(file => {
-      const fileDate = new Date(file.time).toLocaleDateString();
-      const matchesDate = fileDate === today;
+      const d = new Date(file.time);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const fileDateStr = `${year}-${month}-${day}`;
+      
+      const matchesDate = fileDateStr === selectedDate;
       const matchesSeat = file.seat === seatStr;
       const matchesFolder = selectedFolder === 'all' || file.folder === selectedFolder;
       const matchesClass = selectedClass === 'all' || file.className === selectedClass;
@@ -86,10 +96,15 @@ export default function TeacherDashboard({ onBack }: TeacherDashboardProps) {
                 <Users className="w-8 h-8 mr-3 text-blue-600" />
                 教師管理介面
               </h1>
-              <p className="text-gray-500 flex items-center mt-1">
-                <Calendar className="w-4 h-4 mr-1" />
-                今日日期：{today}
-              </p>
+              <div className="text-gray-500 flex items-center mt-2">
+                <Calendar className="w-4 h-4 mr-2" />
+                <input 
+                  type="date" 
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="px-2 py-1 border border-gray-300 rounded bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+                />
+              </div>
             </div>
           </div>
           
@@ -134,7 +149,7 @@ export default function TeacherDashboard({ onBack }: TeacherDashboardProps) {
               <CheckCircle2 className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">今日已繳交</p>
+              <p className="text-sm text-gray-500 font-medium">指定日期已繳交</p>
               <p className="text-2xl font-bold text-gray-800">
                 {seats.filter(s => getSubmissionStatus(s)).length} 人
               </p>
@@ -145,7 +160,7 @@ export default function TeacherDashboard({ onBack }: TeacherDashboardProps) {
               <XCircle className="w-6 h-6 text-red-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">今日未繳交</p>
+              <p className="text-sm text-gray-500 font-medium">指定日期未繳交</p>
               <p className="text-2xl font-bold text-gray-800">
                 {seats.filter(s => !getSubmissionStatus(s)).length} 人
               </p>
@@ -158,7 +173,7 @@ export default function TeacherDashboard({ onBack }: TeacherDashboardProps) {
           <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
             座號繳交狀態 (1-32)
             <span className="ml-3 text-xs font-normal text-gray-500">
-              綠色表示今日已上傳檔案
+              綠色表示指定日期已上傳檔案
             </span>
           </h2>
           

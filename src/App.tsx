@@ -226,15 +226,41 @@ export default function App() {
 
         // Use logged-in user info
         const studentInfo = `${user.seat}`;
-        const res = await backend.uploadBase64File(fileInfo, selectedFolder, user.className, studentInfo);
         
-        if (res.success) {
-          showStatus('success', `成功！檔案 "${res.fileName}" 已上傳。`);
-          // Reset form
-          setSelectedFile(null);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-        } else {
-          showStatus('error', res.message || '上傳失敗');
+        let retries = 3;
+        let success = false;
+        let lastError = '';
+
+        while (retries > 0 && !success) {
+          try {
+            const res = await backend.uploadBase64File(fileInfo, selectedFolder, user.className, studentInfo);
+            
+            if (res.success) {
+              showStatus('success', `成功！檔案 "${res.fileName}" 已上傳。`);
+              // Reset form
+              setSelectedFile(null);
+              if (fileInputRef.current) fileInputRef.current.value = '';
+              success = true;
+            } else {
+              lastError = res.message || '上傳失敗';
+              retries--;
+              if (retries > 0) {
+                showStatus('loading', `上傳失敗，將在3秒後自動重試... (剩餘 ${retries} 次)`);
+                await new Promise(resolve => setTimeout(resolve, 3000));
+              }
+            }
+          } catch (err: any) {
+            lastError = err.message;
+            retries--;
+            if (retries > 0) {
+              showStatus('loading', `發生錯誤，將在3秒後自動重試... (剩餘 ${retries} 次)`);
+              await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+          }
+        }
+
+        if (!success) {
+          showStatus('error', lastError || '上傳失敗，請稍後再試');
         }
         setIsLoading(false);
       };
@@ -454,7 +480,7 @@ export default function App() {
             操作說明：
           </h3>
           <ol className="list-decimal list-inside text-blue-700 space-y-1 font-medium">
-            <li>登入後請到「我的檔案」，下載最新的檔案到桌面。</li>
+            <li>登入後請到「我的檔案」，下載最新的檔案(紅色NEW跳動那個)到桌面。</li>
             <li>打開桌面的檔案確認。</li>
           </ol>
         </div>
