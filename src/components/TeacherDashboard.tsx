@@ -31,10 +31,17 @@ export default function TeacherDashboard({ onBack }: TeacherDashboardProps) {
 
   useEffect(() => {
     loadData();
+
+    // Auto refresh every 30 seconds
+    const intervalId = setInterval(() => {
+      loadData(true);
+    }, 30000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
-  const loadData = async () => {
-    setIsLoading(true);
+  const loadData = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const [filesRes, initialRes] = await Promise.all([
         backend.getUploadedFiles(),
@@ -53,7 +60,7 @@ export default function TeacherDashboard({ onBack }: TeacherDashboardProps) {
     } catch (error) {
       console.error('Failed to load teacher data:', error);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
