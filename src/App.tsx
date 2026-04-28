@@ -480,23 +480,26 @@ export default function App() {
             操作說明：
           </h3>
           <ol className="list-decimal list-inside text-blue-700 space-y-1 font-medium">
-            <li>登入後請到「我的檔案」，下載最新的檔案(紅色NEW跳動那個)到桌面。</li>
+            <li>登入後請到「下載檔案」，下載最新的檔案(紅色NEW跳動那個)到桌面。</li>
             <li>打開桌面的檔案確認。</li>
           </ol>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           {/* Download Section (Left) */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex flex-col h-full animate-in fade-in slide-in-from-left-4 duration-500 order-1">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-gray-100 pb-4">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center">
-                <FolderOpen className="w-6 h-6 text-blue-500 mr-2" />
-                我的檔案
-              </h2>
+          <div className="bg-emerald-50/30 rounded-2xl border-2 border-emerald-200 p-6 shadow-sm flex flex-col h-full animate-in fade-in slide-in-from-left-4 duration-500 order-1">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-emerald-100 pb-4">
+              <div className="flex flex-col">
+                <h2 className="text-2xl font-bold text-emerald-800 flex items-center">
+                  <FolderOpen className="w-6 h-6 text-emerald-600 mr-2" />
+                  下載檔案
+                </h2>
+                <p className="text-sm font-medium text-emerald-600 mt-1 sm:ml-8">(備註:一開始上課時)</p>
+              </div>
               <button 
                 onClick={loadUploadedFiles}
                 disabled={isLoadingFiles}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition flex items-center font-medium shadow-sm border border-gray-200 disabled:opacity-50"
+                className="bg-white text-emerald-700 px-4 py-2 rounded-lg hover:bg-emerald-50 transition flex items-center font-medium shadow-sm border border-emerald-200 disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingFiles ? 'animate-spin' : ''}`} />
                 重新整理
@@ -508,7 +511,7 @@ export default function App() {
                 <select 
                   value={fileFilter}
                   onChange={(e) => setFileFilter(e.target.value)}
-                  className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer appearance-none"
+                  className="w-full pl-10 pr-8 py-2 border border-emerald-200 rounded-lg text-sm font-medium text-emerald-800 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm cursor-pointer appearance-none"
                 >
                   <option value="all">所有作業</option>
                   {uniqueFolders.map(f => <option key={f} value={f}>{f}</option>)}
@@ -525,7 +528,7 @@ export default function App() {
                 <select 
                   value={sortOrder}
                   onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                  className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer appearance-none"
+                  className="w-full pl-10 pr-8 py-2 border border-emerald-200 rounded-lg text-sm font-medium text-emerald-800 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm cursor-pointer appearance-none"
                 >
                   <option value="newest">最新日期在先</option>
                   <option value="oldest">最舊日期在先</option>
@@ -539,14 +542,14 @@ export default function App() {
               </div>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex-grow overflow-y-auto max-h-[600px] custom-scrollbar">
+            <div className="bg-white/50 p-4 rounded-xl border border-emerald-100 flex-grow overflow-y-auto max-h-[600px] custom-scrollbar">
               {isLoadingFiles ? (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-500">
-                  <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                <div className="flex flex-col items-center justify-center py-16 text-emerald-500">
+                  <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
                   <p className="font-medium text-lg">正在載入檔案，請稍候...</p>
                 </div>
               ) : sortedFiles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                <div className="flex flex-col items-center justify-center py-16 text-emerald-400">
                   <FolderOpen className="w-16 h-16 mb-4 opacity-50" />
                   <p className="text-lg font-medium">您還沒有上傳任何檔案</p>
                 </div>
@@ -569,12 +572,12 @@ export default function App() {
                         target="_blank"
                         rel="noreferrer"
                         className={`relative bg-white p-4 rounded-xl border hover:shadow-lg hover:-translate-y-1 transition-all duration-200 flex flex-col items-center text-center group cursor-pointer overflow-hidden animate-in zoom-in duration-300 ${
-                          isNewest ? 'border-blue-400 ring-2 ring-blue-100 shadow-md' : 'border-gray-200 hover:border-blue-400'
+                          isNewest ? 'border-emerald-400 ring-2 ring-emerald-100 shadow-md' : 'border-emerald-100 hover:border-emerald-400'
                         }`}
                         style={{ animationDelay: `${idx * 50}ms` }}
                         title="點擊下載檔案"
                       >
-                        <span className="absolute top-2 left-2 bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-1 rounded w-max max-w-[60%] truncate shadow-sm">
+                        <span className="absolute top-2 left-2 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded w-max max-w-[60%] truncate shadow-sm">
                           {file.folder}
                         </span>
 
@@ -585,7 +588,7 @@ export default function App() {
                         )}
                         
                         <File className={`w-12 h-12 mt-6 mb-3 group-hover:scale-110 transition-transform duration-200 ${
-                          isNewest ? 'text-blue-600' : 'text-blue-400 group-hover:text-blue-500'
+                          isNewest ? 'text-emerald-600' : 'text-emerald-400 group-hover:text-emerald-500'
                         }`} />
 
                         <h3 className="text-sm font-bold text-gray-800 w-full truncate px-1" title={file.fileName}>
@@ -606,27 +609,32 @@ export default function App() {
           </div>
 
           {/* Upload Section (Right) */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-500 order-2">
-            <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
-              <UploadCloud className="w-6 h-6 text-blue-500 mr-2" />
-              <h2 className="text-2xl font-bold text-gray-800">上傳作業</h2>
+          <div className="bg-amber-50/30 rounded-2xl border-2 border-amber-200 p-6 shadow-sm flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-500 order-2">
+            <div className="flex flex-col mb-6 border-b border-amber-100 pb-4">
+              <div className="flex flex-col">
+                <h2 className="text-2xl font-bold text-amber-800 flex items-center">
+                  <UploadCloud className="w-6 h-6 text-amber-600 mr-2" />
+                  上傳作業
+                </h2>
+                <p className="text-sm font-medium text-amber-600 mt-1 sm:ml-8">(備註:快下課時要上傳)</p>
+              </div>
             </div>
             <form onSubmit={handleSubmit} className="space-y-8 flex-grow">
               
               {/* Step 1 */}
-              <div className={`flex items-start space-x-4 p-4 rounded-xl transition-all duration-300 ${step1Active ? 'bg-blue-50/50 border border-blue-100' : ''}`}>
+              <div className={`flex items-start space-x-4 p-4 rounded-xl transition-all duration-300 ${step1Active ? 'bg-amber-100/50 border border-amber-200' : ''}`}>
                 <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-sm transition-all duration-300 ${
-                  step1Active ? 'bg-blue-500 text-white ring-4 ring-blue-300 ring-offset-2 shadow-[0_0_15px_rgba(59,130,246,0.6)] scale-110' :
-                  selectedFolder ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-500'
+                  step1Active ? 'bg-amber-500 text-white ring-4 ring-amber-300 ring-offset-2 shadow-[0_0_15px_rgba(245,158,11,0.6)] scale-110' :
+                  selectedFolder ? 'bg-amber-500 text-white' : 'bg-gray-300 text-gray-500'
                 }`}>1</div>
                 <div className="flex-grow">
-                  <label htmlFor="folderSelect" className="block text-lg font-medium text-gray-800 mb-2">選擇作業項目</label>
+                  <label htmlFor="folderSelect" className="block text-lg font-medium text-amber-900 mb-2">選擇作業項目</label>
                   <div className="relative">
                     <select 
                       id="folderSelect"
                       value={selectedFolder}
                       onChange={(e) => setSelectedFolder(e.target.value)}
-                      className="w-full p-3 pr-8 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white text-lg"
+                      className="w-full p-3 pr-8 border border-amber-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 appearance-none bg-white text-lg text-amber-900"
                       disabled={isLoading}
                     >
                       <option value="" disabled>請選擇作業</option>
@@ -686,9 +694,9 @@ export default function App() {
 
               {/* Step 3 */}
               {selectedFile && (
-                <div ref={step3Ref} className={`pt-6 pb-2 flex justify-center items-center space-x-4 animate-in slide-in-from-bottom-4 duration-500 p-4 rounded-xl transition-all ${step3Active ? 'bg-purple-50/50 border border-purple-100' : ''}`}>
+                <div ref={step3Ref} className={`pt-6 pb-2 flex justify-center items-center space-x-4 animate-in slide-in-from-bottom-4 duration-500 p-4 rounded-xl transition-all ${step3Active ? 'bg-amber-100/50 border border-amber-200' : ''}`}>
                   <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-sm transition-all duration-300 ${
-                    step3Active ? 'bg-purple-500 text-white ring-4 ring-purple-300 ring-offset-2 shadow-[0_0_15px_rgba(168,85,247,0.6)] scale-110' :
+                    step3Active ? 'bg-amber-500 text-white ring-4 ring-amber-300 ring-offset-2 shadow-[0_0_15px_rgba(245,158,11,0.6)] scale-110' :
                     'bg-gray-300 text-gray-500'
                   }`}>3</div>
                   <button 
@@ -697,7 +705,7 @@ export default function App() {
                     className={`w-full md:w-2/3 flex justify-center items-center font-bold py-4 px-6 rounded-xl focus:outline-none transition-all duration-300 ${
                       isLoading 
                         ? 'bg-gray-400 text-white cursor-not-allowed' 
-                        : 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.6)] hover:bg-blue-700 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(37,99,235,0.8)] ring-4 ring-blue-300 ring-offset-2 animate-pulse'
+                        : 'bg-amber-600 text-white shadow-[0_0_20px_rgba(217,119,6,0.6)] hover:bg-amber-700 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(217,119,6,0.8)] ring-4 ring-amber-300 ring-offset-2 animate-pulse'
                     }`}
                   >
                     {isLoading ? (
