@@ -152,8 +152,8 @@ export default function App() {
 
   const validateFile = (file: File): boolean => {
     // Check size
-    if (file.size > 50 * 1024 * 1024) {
-      showStatus('error', '錯誤：檔案大小超過 50MB 限制。');
+    if (file.size > 150 * 1024 * 1024) {
+      showStatus('error', '錯誤：檔案大小超過 150MB 限制。');
       return false;
     }
 
@@ -682,7 +682,7 @@ export default function App() {
                       <div className="text-gray-500 pointer-events-none">
                         <UploadCloud className="mx-auto h-12 w-12 text-gray-400 mb-3" />
                         <p className="text-lg font-medium text-gray-700">點擊或將檔案拖曳至此</p>
-                        <p className="text-sm text-gray-400 mt-2">支援所有格式 (最大 50MB)</p>
+                        <p className="text-sm text-gray-400 mt-2">支援所有格式 (最大 150MB)</p>
                       </div>
                     )}
                   </div>
