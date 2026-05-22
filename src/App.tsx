@@ -58,6 +58,18 @@ export default function App() {
   const step3Ref = useRef<HTMLDivElement>(null);
   const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Initial mount check for saved session
+  useEffect(() => {
+    const savedSession = localStorage.getItem('student_session');
+    if (savedSession) {
+      try {
+        setUser(JSON.parse(savedSession));
+      } catch (e) {
+        localStorage.removeItem('student_session');
+      }
+    }
+  }, []);
+
   // --- Effects ---
   useEffect(() => {
     if (user) {
@@ -79,6 +91,7 @@ export default function App() {
       const res = await backend.login(loginAccount, loginPassword);
       if (res.success && res.user) {
         setUser(res.user);
+        localStorage.setItem('student_session', JSON.stringify(res.user));
         // 移除登入成功的提示訊息
       } else {
         showStatus('error', res.message || '登入失敗');
@@ -107,6 +120,7 @@ export default function App() {
     setLoginPassword('');
     setSelectedFolder('');
     setSelectedFile(null);
+    localStorage.removeItem('student_session');
   };
 
   const loadInitialData = async () => {
@@ -227,12 +241,18 @@ export default function App() {
         // Use logged-in user info
         const studentInfo = `${user.seat}`;
         
-        let retries = 3;
+        let retries = 10; // 增加重試次數，形成排隊機制
         let success = false;
         let lastError = '';
 
+        // 起初隨機等待 1~5 秒分散併發流量，避免全班同時送出導致 Google Apps Script 執行限制
+        const initialJitter = Math.floor(Math.random() * 4000) + 1000;
+        showStatus('loading', '檔案已加入排隊系統，請勿關閉視窗...');
+        await new Promise(resolve => setTimeout(resolve, initialJitter));
+
         while (retries > 0 && !success) {
           try {
+            showStatus('loading', '正在上傳檔案... 請勿關閉視窗');
             const res = await backend.uploadBase64File(fileInfo, selectedFolder, user.className, studentInfo);
             
             if (res.success) {
@@ -245,16 +265,19 @@ export default function App() {
               lastError = res.message || '上傳失敗';
               retries--;
               if (retries > 0) {
-                showStatus('loading', `上傳失敗，將在3秒後自動重試... (剩餘 ${retries} 次)`);
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                // 每次重試增加等待時間，分散併發 (加上隨機 jitter 避免剛好一起重試)
+                const waitTime = (10 - retries) * 3000 + Math.floor(Math.random() * 3000);
+                showStatus('loading', `伺服器忙碌中，自動排隊等待 ${Math.ceil(waitTime/1000)} 秒重新上傳...`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
               }
             }
           } catch (err: any) {
             lastError = err.message;
             retries--;
             if (retries > 0) {
-              showStatus('loading', `發生錯誤，將在3秒後自動重試... (剩餘 ${retries} 次)`);
-              await new Promise(resolve => setTimeout(resolve, 3000));
+              const waitTime = (10 - retries) * 3000 + Math.floor(Math.random() * 3000);
+              showStatus('loading', `伺服器連線不穩，自動排隊等待 ${Math.ceil(waitTime/1000)} 秒重新上傳...`);
+              await new Promise(resolve => setTimeout(resolve, waitTime));
             }
           }
         }
